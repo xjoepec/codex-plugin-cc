@@ -13,11 +13,16 @@
     "types": ["node"]
   },
   "include": [
+    "plugins/codex/scripts/codex-monitor.mjs",
+    "plugins/codex/scripts/codex-runtime.mjs",
+    "plugins/codex/scripts/codex-steer.mjs",
     "plugins/codex/scripts/lib/app-server.mjs",
+    "plugins/codex/scripts/lib/app-server-protocol.d.ts",
     "plugins/codex/scripts/lib/codex.mjs",
     "plugins/codex/scripts/lib/fs.mjs",
+    "plugins/codex/scripts/lib/model-policy.mjs",
     "plugins/codex/scripts/lib/process.mjs",
-    "plugins/codex/scripts/lib/app-server-protocol.d.ts",
+    "plugins/codex/scripts/lib/runtime-catalog.mjs",
     "plugins/codex/.generated/app-server-types/**/*.ts"
   ]
 }
