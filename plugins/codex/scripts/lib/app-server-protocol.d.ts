@@ -8,9 +8,13 @@ import type {
 import type {
   ExternalAgentConfigImportParams,
   ExternalAgentConfigImportResponse,
+  ModelListParams,
+  ModelListResponse,
   ReviewStartParams,
   ReviewStartResponse,
   ReviewTarget,
+  SkillsListParams,
+  SkillsListResponse,
   Thread,
   ThreadItem,
   ThreadListParams,
@@ -26,6 +30,8 @@ import type {
   TurnInterruptResponse,
   TurnStartParams,
   TurnStartResponse,
+  TurnSteerParams,
+  TurnSteerResponse,
   UserInput
 } from "../../.generated/app-server-types/v2/index.js";
 
@@ -34,13 +40,18 @@ export type {
   InitializeCapabilities,
   InitializeParams,
   InitializeResponse,
+  ModelListParams,
+  ModelListResponse,
   ReviewTarget,
+  SkillsListParams,
+  SkillsListResponse,
   Thread,
   ThreadItem,
   ThreadListParams,
   Turn,
   TurnInterruptParams,
   TurnStartParams,
+  TurnSteerParams,
   UserInput
 };
 
@@ -59,12 +70,15 @@ export interface CodexAppServerClientOptions {
 export interface AppServerMethodMap {
   initialize: { params: InitializeParams; result: InitializeResponse };
   "externalAgentConfig/import": { params: ExternalAgentConfigImportParams; result: ExternalAgentConfigImportResponse };
+  "model/list": { params: ModelListParams; result: ModelListResponse };
+  "skills/list": { params: SkillsListParams; result: SkillsListResponse };
   "thread/start": { params: ThreadStartParams; result: ThreadStartResponse };
   "thread/resume": { params: ThreadResumeParams; result: ThreadResumeResponse };
   "thread/name/set": { params: ThreadSetNameParams; result: ThreadSetNameResponse };
   "thread/list": { params: ThreadListParams; result: ThreadListResponse };
   "review/start": { params: ReviewStartParams; result: ReviewStartResponse };
   "turn/start": { params: TurnStartParams; result: TurnStartResponse };
+  "turn/steer": { params: TurnSteerParams; result: TurnSteerResponse };
   "turn/interrupt": { params: TurnInterruptParams; result: TurnInterruptResponse };
 }
 

@@ -8,9 +8,18 @@ permissions:
 
 jobs:
   ci:
-    name: CI
+    name: CI (Node ${{ matrix.node-version }}, Codex ${{ matrix.codex-version }})
     runs-on: ubuntu-latest
     timeout-minutes: 10
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - node-version: "18.18.0"
+            codex-version: "0.153.0"
+          - node-version: "22"
+            codex-version: "latest"
 
     steps:
       - name: Check out repository
@@ -19,14 +28,17 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
         with:
-          node-version: 22
+          node-version: ${{ matrix.node-version }}
           cache: npm
 
       - name: Install dependencies
         run: npm ci
 
+      - name: Check version consistency
+        run: npm run check-version
+
       - name: Install Codex CLI
-        run: npm install -g @openai/codex
+        run: npm install -g @openai/codex@${{ matrix.codex-version }}
 
       - name: Run test suite
         run: npm test
