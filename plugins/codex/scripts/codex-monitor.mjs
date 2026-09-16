@@ -5,9 +5,16 @@ import process from "node:process";
 import { fileURLToPath } from "node:url";
 
 import { listJobs } from "./lib/state.mjs";
+import { SESSION_ID_ENV } from "./lib/tracked-jobs.mjs";
 
 const TERMINAL = new Set(["completed", "failed", "cancelled"]);
 const POLL_MS = 1000;
+
+export function jobsVisibleToSession(jobs, env = process.env) {
+  const sessionId = env[SESSION_ID_ENV] ?? null;
+  if (!sessionId) return jobs;
+  return jobs.filter((job) => job.sessionId === sessionId);
+}
 
 export function terminalTransitions(previous, jobs, initialized = true) {
   const next = new Map();
@@ -39,7 +46,8 @@ function main() {
 
   const poll = () => {
     try {
-      const result = terminalTransitions(previous, listJobs(process.cwd()), initialized);
+      const jobs = jobsVisibleToSession(listJobs(process.cwd()));
+      const result = terminalTransitions(previous, jobs, initialized);
       previous = result.next;
       initialized = true;
       for (const event of result.events) process.stdout.write(`${render(event)}\n`);

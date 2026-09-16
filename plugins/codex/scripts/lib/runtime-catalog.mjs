@@ -50,6 +50,20 @@ function normalize(value) {
   return text || null;
 }
 
+function renderSkillDiscoveryError(error) {
+  if (typeof error === "string") return normalize(error);
+  if (error && typeof error === "object") {
+    const message = normalize(error.message ?? error.error ?? error.reason);
+    if (message) return message;
+    try {
+      return JSON.stringify(error);
+    } catch {
+      return null;
+    }
+  }
+  return normalize(error);
+}
+
 function modelKeys(model) {
   return [model.id, model.model].filter(Boolean);
 }
@@ -111,10 +125,18 @@ export function resolveSkillSelection(entries, requestedNames = []) {
   if (!requested.length) return [];
 
   const skills = entries.flatMap((entry) => entry.skills ?? []).filter((skill) => skill.enabled !== false);
+  const discoveryErrors = entries
+    .flatMap((entry) => entry.errors ?? [])
+    .map(renderSkillDiscoveryError)
+    .filter(Boolean);
+
   return requested.map((name) => {
     const skill = skills.find((candidate) => candidate.name === name);
     if (!skill) {
-      throw new Error(`Codex skill "${name}" is not available. Run /codex:skills to inspect the live catalog.`);
+      const detail = discoveryErrors.length
+        ? ` Skill discovery reported: ${discoveryErrors.join("; ")}.`
+        : "";
+      throw new Error(`Codex skill "${name}" is not available.${detail} Run /codex:skills to inspect the live catalog.`);
     }
     return skill;
   });

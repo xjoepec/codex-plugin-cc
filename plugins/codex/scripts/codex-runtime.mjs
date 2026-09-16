@@ -18,19 +18,39 @@ function normalizeArgv(argv) {
   return raw?.trim() ? splitRawArgumentString(raw) : [];
 }
 
-function optionLimit(tokens) {
-  const index = tokens.indexOf("--");
-  return index === -1 ? tokens.length : index;
+// Security invariant: tokens after `--` are literal task input.
+// No runtime routing helper may remove the boundary or reinterpret its suffix.
+function splitOptionBoundary(tokens) {
+  const boundary = tokens.indexOf("--");
+  if (boundary === -1) {
+    return { controls: [...tokens], literal: [], hadBoundary: false };
+  }
+  return {
+    controls: tokens.slice(0, boundary),
+    literal: tokens.slice(boundary + 1),
+    hadBoundary: true
+  };
+}
+
+function joinOptionBoundary(controls, literal, hadBoundary) {
+  return hadBoundary ? [...controls, "--", ...literal] : [...controls];
+}
+
+function missingOptionValue(name) {
+  return new Error(`Missing value for ${name}`);
 }
 
 function readOptions(tokens, names) {
+  const { controls } = splitOptionBoundary(tokens);
   const values = [];
-  const limit = optionLimit(tokens);
-  for (let index = 0; index < limit; index += 1) {
-    const token = tokens[index];
+
+  for (let index = 0; index < controls.length; index += 1) {
+    const token = controls[index];
     for (const name of names) {
       if (token === name) {
-        if (index + 1 < limit) values.push(tokens[index + 1]);
+        if (index + 1 >= controls.length) throw missingOptionValue(name);
+        values.push(controls[index + 1]);
+        index += 1;
         break;
       }
       const prefix = `${name}=`;
@@ -48,46 +68,45 @@ function readOption(tokens, names) {
 }
 
 function hasFlag(tokens, name) {
-  return tokens.slice(0, optionLimit(tokens)).some((token) => token === name || token === `${name}=true`);
+  const { controls } = splitOptionBoundary(tokens);
+  return controls.some((token) => token === name || token === `${name}=true`);
 }
 
 function replaceOption(tokens, names, canonicalName, value) {
   if (value == null) return [...tokens];
 
-  const next = [...tokens];
-  const limit = optionLimit(next);
-  for (let index = limit - 1; index >= 0; index -= 1) {
+  const { controls, literal, hadBoundary } = splitOptionBoundary(tokens);
+  for (let index = controls.length - 1; index >= 0; index -= 1) {
     for (const name of names) {
-      if (next[index] === name && index + 1 < limit) {
-        next[index] = canonicalName;
-        next[index + 1] = value;
-        return next;
+      if (controls[index] === name) {
+        if (index + 1 >= controls.length) throw missingOptionValue(name);
+        controls[index] = canonicalName;
+        controls[index + 1] = value;
+        return joinOptionBoundary(controls, literal, hadBoundary);
       }
       const prefix = `${name}=`;
-      if (next[index].startsWith(prefix)) {
-        next[index] = `${canonicalName}=${value}`;
-        return next;
+      if (controls[index].startsWith(prefix)) {
+        controls[index] = `${canonicalName}=${value}`;
+        return joinOptionBoundary(controls, literal, hadBoundary);
       }
     }
   }
 
-  next.splice(limit, 0, canonicalName, value);
-  return next;
+  controls.push(canonicalName, value);
+  return joinOptionBoundary(controls, literal, hadBoundary);
 }
 
 function removeOptions(tokens, names) {
+  const { controls, literal, hadBoundary } = splitOptionBoundary(tokens);
   const next = [];
-  const limit = optionLimit(tokens);
-  for (let index = 0; index < tokens.length; index += 1) {
-    const token = tokens[index];
-    if (index >= limit) {
-      next.push(token);
-      continue;
-    }
 
+  for (let index = 0; index < controls.length; index += 1) {
+    const token = controls[index];
     let matched = false;
+
     for (const name of names) {
       if (token === name) {
+        if (index + 1 >= controls.length) throw missingOptionValue(name);
         matched = true;
         index += 1;
         break;
@@ -97,19 +116,20 @@ function removeOptions(tokens, names) {
         break;
       }
     }
+
     if (!matched) next.push(token);
   }
-  return next;
+
+  return joinOptionBoundary(next, literal, hadBoundary);
 }
 
 function injectSkillMentions(tokens, skills) {
   const mentions = skills.map((skill) => `$${skill.name}`);
   if (!mentions.length) return [...tokens];
-  const next = [...tokens];
-  const boundary = next.indexOf("--");
-  if (boundary === -1) next.push(...mentions);
-  else next.splice(boundary + 1, 0, ...mentions);
-  return next;
+
+  const { controls, literal, hadBoundary } = splitOptionBoundary(tokens);
+  if (!hadBoundary) return [...controls, ...mentions];
+  return [...controls, "--", ...mentions, ...literal];
 }
 
 function resolveCwd(tokens) {
@@ -206,5 +226,6 @@ export {
   replaceOption,
   renderModels,
   renderSkills,
-  resolveCwd
+  resolveCwd,
+  splitOptionBoundary
 };

@@ -98,3 +98,18 @@ test("skill selection resolves enabled skills and preserves requested order", ()
   );
   assert.throws(() => resolveSkillSelection(entries, ["disabled"]), /not available/);
 });
+
+test("skill discovery errors remain visible when a requested skill cannot resolve", () => {
+  const entries = [
+    {
+      cwd: "/repo",
+      skills: [],
+      errors: [{ message: "Invalid SKILL.md frontmatter" }]
+    }
+  ];
+
+  assert.throws(
+    () => resolveSkillSelection(entries, ["broken-skill"]),
+    /Skill discovery reported: Invalid SKILL\.md frontmatter/
+  );
+});
